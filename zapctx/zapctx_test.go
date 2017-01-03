@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 	gc "gopkg.in/check.v1"
 
-	"github.com/juju/zapctx"
+	"github.com/juju/zaputil/zapctx"
 )
 
 type zapctxSuite struct {

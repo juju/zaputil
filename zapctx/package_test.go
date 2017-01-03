@@ -1,6 +1,6 @@
 // Copyright 2016 Canonical Ltd.
 
-package zaputil_test
+package zapctx_test
 
 import (
 	"testing"
