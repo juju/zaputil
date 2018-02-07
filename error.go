@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/errgo.v1"
 )
 
@@ -13,11 +14,11 @@ import (
 // If err is nil, the field is a no-op.
 // This is different from zap.Error because the logged
 // error also includes error traceback information.
-func Error(err error) zap.Field {
+func Error(err error) zapcore.Field {
 	if err == nil {
 		return zap.Skip()
 	}
-	return zap.Object("error", errObject{err})
+	return zap.Reflect("error", errObject{err})
 }
 
 // errObject is the type stored in the zap.Field. It implements
