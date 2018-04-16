@@ -71,10 +71,12 @@ type coreWithLevel struct {
 }
 
 func (c *coreWithLevel) Enabled(level zapcore.Level) bool {
-	return level >= c.level && c.Core.Enabled(level)
+	return c.level.Enabled(level) && c.Core.Enabled(level)
 }
 
 func (c *coreWithLevel) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	// We only need to do the local level check because
+	// c.Core will do its own level checking.
 	if !c.level.Enabled(e.Level) {
 		return ce
 	}
