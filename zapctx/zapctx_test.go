@@ -46,6 +46,19 @@ func (*zapctxSuite) TestWithFields(c *gc.C) {
 	c.Assert(buf.String(), gc.Matches, `INFO\thello\t\{"foo": 999, "bar": "whee"\}\n`)
 }
 
+func (*zapctxSuite) TestWithLevel(c *gc.C) {
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	ctx1 := zapctx.WithLevel(ctx, zap.WarnLevel)
+	zapctx.Info(ctx, "one")
+	zapctx.Info(ctx1, "should not appear")
+	zapctx.Warn(ctx1, "two")
+	zapctx.Error(ctx1, "three")
+	c.Assert(buf.String(), gc.Matches, `INFO\tone\nWARN\ttwo\nERROR\tthree\n`)
+}
+
 func newLogger(w io.Writer) *zap.Logger {
 	config := zapcore.EncoderConfig{
 		MessageKey:  "msg",
