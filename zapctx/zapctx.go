@@ -49,6 +49,38 @@ func WithFields(ctx context.Context, fields ...zapcore.Field) context.Context {
 	return WithLogger(ctx, Logger(ctx).With(fields...))
 }
 
+// WithLevel returns a new context derived from ctx
+// that has a logger that only logs messages at or above
+// the given level.
+func WithLevel(ctx context.Context, level zapcore.Level) context.Context {
+	return WithLogger(ctx, Logger(ctx).WithOptions(wrapCoreWithLevel(level)))
+}
+
+func wrapCoreWithLevel(level zapcore.Level) zap.Option {
+	return zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+		return &coreWithLevel{
+			Core:  core,
+			level: level,
+		}
+	})
+}
+
+type coreWithLevel struct {
+	zapcore.Core
+	level zapcore.Level
+}
+
+func (c *coreWithLevel) Enabled(level zapcore.Level) bool {
+	return level >= c.level && c.Core.Enabled(level)
+}
+
+func (c *coreWithLevel) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	if !c.level.Enabled(e.Level) {
+		return ce
+	}
+	return c.Core.Check(e, ce)
+}
+
 // Logger returns the logger associated with the given
 // context. If there is no logger, it will return Default.
 func Logger(ctx context.Context) *zap.Logger {
