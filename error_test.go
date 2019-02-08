@@ -3,30 +3,29 @@ package zaputil_test
 import (
 	"bytes"
 	"io"
+	"testing"
 
+	qt "github.com/frankban/quicktest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	gc "gopkg.in/check.v1"
 	errgo "gopkg.in/errgo.v1"
 
 	"github.com/juju/zaputil"
 )
 
-type zaputilSuite struct{}
-
-var _ = gc.Suite(&zaputilSuite{})
-
-func (*zaputilSuite) TestErrorJSONEncoder(c *gc.C) {
+func TestErrorJSONEncoder(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newJSONLogger(&buf)
 	err := errgo.New("something")
 	err = errgo.Mask(err)
 	err = errgo.Notef(err, "an error")
 	logger.Info("a message", zaputil.Error(err))
-	c.Assert(buf.String(), gc.Matches, `\{"level":"info","ts":[0-9.]+,"msg":"a message","error":\{"msg":"an error: something","trace":\[\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"an error"\},\{"loc":".*zaputil/error_test.go:[0-9]+"\},\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"something"\}]\}\}\n`)
+	c.Assert(buf.String(), qt.Matches, `\{"level":"info","ts":[0-9.]+,"msg":"a message","error":\{"msg":"an error: something","trace":\[\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"an error"\},\{"loc":".*zaputil/error_test.go:[0-9]+"\},\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"something"\}]\}\}\n`)
 }
 
-func (*zaputilSuite) TestConsoleEncoder(c *gc.C) {
+func TestConsoleEncoder(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newConsoleLogger(&buf)
 
@@ -34,21 +33,23 @@ func (*zaputilSuite) TestConsoleEncoder(c *gc.C) {
 	err = errgo.Mask(err)
 	err = errgo.Notef(err, "an error")
 	logger.Info("a message", zaputil.Error(err))
-	c.Assert(buf.String(), gc.Matches, `[0-9.e+]+\tinfo\ta message\t\{"error": \{"msg":"an error: something","trace":\[\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"an error"\},\{"loc":".*zaputil/error_test.go:[0-9]+"\},\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"something"\}\]\}\}\n`)
+	c.Assert(buf.String(), qt.Matches, `[0-9.e+]+\tinfo\ta message\t\{"error": \{"msg":"an error: something","trace":\[\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"an error"\},\{"loc":".*zaputil/error_test.go:[0-9]+"\},\{"loc":".*zaputil/error_test.go:[0-9]+","msg":"something"\}\]\}\}\n`)
 }
 
-func (*zaputilSuite) TestNilError(c *gc.C) {
+func TestNilError(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newConsoleLogger(&buf)
 	logger.Info("a message", zaputil.Error(nil))
-	c.Assert(buf.String(), gc.Matches, `[0-9.e+]+\tinfo\ta message\n`)
+	c.Assert(buf.String(), qt.Matches, `[0-9.e+]+\tinfo\ta message\n`)
 }
 
-func (*zaputilSuite) TestSimpleError(c *gc.C) {
+func TestSimpleError(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newJSONLogger(&buf)
 	logger.Info("a message", zaputil.Error(io.EOF))
-	c.Assert(buf.String(), gc.Matches, `\{"level":"info","ts":[0-9.]+,"msg":"a message","error":\{"msg":"EOF"\}\}\n`)
+	c.Assert(buf.String(), qt.Matches, `\{"level":"info","ts":[0-9.]+,"msg":"a message","error":\{"msg":"EOF"\}\}\n`)
 }
 
 var encoderConfig = zapcore.EncoderConfig{
