@@ -3,50 +3,47 @@ package zapctx_test
 import (
 	"bytes"
 	"io"
+	"testing"
 
-	"github.com/juju/testing"
+	qt "github.com/frankban/quicktest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/net/context"
-	gc "gopkg.in/check.v1"
 
 	"github.com/juju/zaputil/zapctx"
 )
 
-type zapctxSuite struct {
-	testing.CleanupSuite
-}
-
-var _ = gc.Suite(&zapctxSuite{})
-
-func (*zapctxSuite) TestLogger(c *gc.C) {
+func TestLogger(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newLogger(&buf)
 	ctx := zapctx.WithLogger(context.Background(), logger)
 	zapctx.Logger(ctx).Info("hello")
-	c.Assert(buf.String(), gc.Matches, `INFO\thello\n`)
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
 }
 
-func (s *zapctxSuite) TestDefaultLogger(c *gc.C) {
+func TestDefaultLogger(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newLogger(&buf)
-
-	s.PatchValue(&zapctx.Default, logger)
-	zapctx.Logger(context.Background()).Info("hello")
-	c.Assert(buf.String(), gc.Matches, `INFO\thello\n`)
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	zapctx.Logger(ctx).Info("hello")
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
 }
 
-func (*zapctxSuite) TestWithFields(c *gc.C) {
+func TestWithFields(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newLogger(&buf)
 
 	ctx := zapctx.WithLogger(context.Background(), logger)
 	ctx = zapctx.WithFields(ctx, zap.Int("foo", 999), zap.String("bar", "whee"))
 	zapctx.Logger(ctx).Info("hello")
-	c.Assert(buf.String(), gc.Matches, `INFO\thello\t\{"foo": 999, "bar": "whee"\}\n`)
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\t\{"foo": 999, "bar": "whee"\}\n`)
 }
 
-func (*zapctxSuite) TestWithLevel(c *gc.C) {
+func TestWithLevel(t *testing.T) {
+	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newLogger(&buf)
 
@@ -56,7 +53,7 @@ func (*zapctxSuite) TestWithLevel(c *gc.C) {
 	zapctx.Info(ctx1, "should not appear")
 	zapctx.Warn(ctx1, "two")
 	zapctx.Error(ctx1, "three")
-	c.Assert(buf.String(), gc.Matches, `INFO\tone\nWARN\ttwo\nERROR\tthree\n`)
+	c.Assert(buf.String(), qt.Matches, `INFO\tone\nWARN\ttwo\nERROR\tthree\n`)
 }
 
 func newLogger(w io.Writer) *zap.Logger {
