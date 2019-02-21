@@ -5,11 +5,11 @@
 package zapctx
 
 import (
+	"context"
 	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/net/context"
 )
 
 // LogLevel holds an AtomicLevel that can be used to change the logging
@@ -81,6 +81,13 @@ func (c *coreWithLevel) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcor
 		return ce
 	}
 	return c.Core.Check(e, ce)
+}
+
+func (c *coreWithLevel) With(fields []zap.Field) zapcore.Core {
+	return &coreWithLevel{
+		Core:  c.Core.With(fields),
+		level: c.level,
+	}
 }
 
 // Logger returns the logger associated with the given

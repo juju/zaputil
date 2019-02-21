@@ -2,13 +2,13 @@ package zapctx_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/net/context"
 
 	"github.com/juju/zaputil/zapctx"
 )
@@ -54,6 +54,32 @@ func TestWithLevel(t *testing.T) {
 	zapctx.Warn(ctx1, "two")
 	zapctx.Error(ctx1, "three")
 	c.Assert(buf.String(), qt.Matches, `INFO\tone\nWARN\ttwo\nERROR\tthree\n`)
+}
+
+func TestMultistageSetupA(t *testing.T) {
+	c := qt.New(t)
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	ctx = zapctx.WithLevel(ctx, zapcore.WarnLevel)
+	ctx = zapctx.WithFields(ctx, zap.String("foo", "bar"))
+	zapctx.Info(ctx, "one")
+	zapctx.Warn(ctx, "two")
+	c.Assert(buf.String(), qt.Matches, `WARN\ttwo\t{\"foo\": \"bar\"}\n`)
+}
+
+func TestMultistageSetupB(t *testing.T) {
+	c := qt.New(t)
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	ctx = zapctx.WithFields(ctx, zap.String("foo", "bar"))
+	ctx = zapctx.WithLevel(ctx, zapcore.WarnLevel)
+	zapctx.Info(ctx, "one")
+	zapctx.Warn(ctx, "two")
+	c.Assert(buf.String(), qt.Matches, `WARN\ttwo\t{\"foo\": \"bar\"}\n`)
 }
 
 func newLogger(w io.Writer) *zap.Logger {
