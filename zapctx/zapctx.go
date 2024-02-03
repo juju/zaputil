@@ -126,11 +126,9 @@ func GetLoggerOrDefault(ctx context.Context) *zap.Logger {
 // GetLogger returns the logger associated with the given context. If there is no logger, it will cause panic.
 func GetLogger(ctx context.Context) *zap.Logger {
 	if l := logger(ctx); l != nil {
-		println("--- 1 ---")
 		return l
 	}
 
-	println("--- 2 ---")
 	panic("logger not found in the context")
 }
 
