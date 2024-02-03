@@ -22,12 +22,53 @@ func TestLogger(t *testing.T) {
 	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
 }
 
+func TestGetLoggerOrDefault(t *testing.T) {
+	c := qt.New(t)
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	zapctx.GetLoggerOrDefault(ctx).Info("hello")
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
+}
+
+func TestGetLogger(t *testing.T) {
+	c := qt.New(t)
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	zapctx.GetLoggerOrDefault(ctx).Info("hello")
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
+
+	c.Assert(func() { zapctx.GetLogger(context.Background()) }, qt.PanicMatches, "logger not found in the context")
+}
+
+func TestGetLoggerOrError(t *testing.T) {
+	c := qt.New(t)
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	zapctx.GetLoggerOrDefault(ctx).Info("hello")
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
+
+	loggerOrError, err := zapctx.GetLoggerOrError(context.Background())
+	c.Assert(loggerOrError, qt.IsNil)
+	c.Assert(err, qt.ErrorMatches, "logger not found in the context")
+}
+
 func TestDefaultLogger(t *testing.T) {
 	c := qt.New(t)
 	var buf bytes.Buffer
 	logger := newLogger(&buf)
 	ctx := zapctx.WithLogger(context.Background(), logger)
 	zapctx.Logger(ctx).Info("hello")
+	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
+}
+func TestDefaultGetLoggerOrDefault(t *testing.T) {
+	c := qt.New(t)
+	var buf bytes.Buffer
+	logger := newLogger(&buf)
+	ctx := zapctx.WithLogger(context.Background(), logger)
+	zapctx.GetLoggerOrDefault(ctx).Info("hello")
 	c.Assert(buf.String(), qt.Matches, `INFO\thello\n`)
 }
 
@@ -38,7 +79,7 @@ func TestWithFields(t *testing.T) {
 
 	ctx := zapctx.WithLogger(context.Background(), logger)
 	ctx = zapctx.WithFields(ctx, zap.Int("foo", 999), zap.String("bar", "whee"))
-	zapctx.Logger(ctx).Info("hello")
+	zapctx.GetLoggerOrDefault(ctx).Info("hello")
 	c.Assert(buf.String(), qt.Matches, `INFO\thello\t\{"foo": 999, "bar": "whee"\}\n`)
 }
 

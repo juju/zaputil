@@ -1,0 +1,11 @@
+# MacOS
+.DS_Store
+
+# JetBrains IDE
+.idea/
+
+# VS Code
+.vscode/
+
+# Other
+.tool-versions

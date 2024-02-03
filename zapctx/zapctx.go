@@ -6,6 +6,7 @@ package zapctx
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"go.uber.org/zap"
@@ -22,13 +23,15 @@ var LogLevel = zap.NewAtomicLevel()
 // to dynamically change the logging level.
 var Default = zap.New(
 	zapcore.NewCore(
-		zapcore.NewJSONEncoder(zapcore.EncoderConfig{
-			MessageKey:  "msg",
-			LevelKey:    "level",
-			TimeKey:     "ts",
-			EncodeLevel: zapcore.LowercaseLevelEncoder,
-			EncodeTime:  zapcore.ISO8601TimeEncoder,
-		}),
+		zapcore.NewJSONEncoder(
+			zapcore.EncoderConfig{
+				MessageKey:  "msg",
+				LevelKey:    "level",
+				TimeKey:     "ts",
+				EncodeLevel: zapcore.LowercaseLevelEncoder,
+				EncodeTime:  zapcore.ISO8601TimeEncoder,
+			},
+		),
 		os.Stdout,
 		&LogLevel,
 	),
@@ -46,7 +49,7 @@ func WithLogger(ctx context.Context, logger *zap.Logger) context.Context {
 // WithFields returns a new context derived from ctx
 // that has a logger that always logs the given fields.
 func WithFields(ctx context.Context, fields ...zapcore.Field) context.Context {
-	return WithLogger(ctx, Logger(ctx).With(fields...))
+	return WithLogger(ctx, GetLoggerOrDefault(ctx).With(fields...))
 }
 
 // WithLevel returns a new context derived from ctx
@@ -57,12 +60,14 @@ func WithLevel(ctx context.Context, level zapcore.Level) context.Context {
 }
 
 func wrapCoreWithLevel(level zapcore.Level) zap.Option {
-	return zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-		return &coreWithLevel{
-			Core:  core,
-			level: level,
-		}
-	})
+	return zap.WrapCore(
+		func(core zapcore.Core) zapcore.Core {
+			return &coreWithLevel{
+				Core:  core,
+				level: level,
+			}
+		},
+	)
 }
 
 type coreWithLevel struct {
@@ -90,34 +95,70 @@ func (c *coreWithLevel) With(fields []zap.Field) zapcore.Core {
 	}
 }
 
-// Logger returns the logger associated with the given
-// context. If there is no logger, it will return Default.
-func Logger(ctx context.Context) *zap.Logger {
+func logger(ctx context.Context) *zap.Logger {
 	if ctx == nil {
 		panic("nil context passed to Logger")
 	}
-	if logger, _ := ctx.Value(loggerKey{}).(*zap.Logger); logger != nil {
-		return logger
+
+	if l, _ := ctx.Value(loggerKey{}).(*zap.Logger); l != nil {
+		return l
 	}
+
+	return nil
+}
+
+// Logger returns the logger associated with the given
+// context. If there is no logger, it will return Default.
+// deprecated: use GetLoggerOrDefault
+func Logger(ctx context.Context) *zap.Logger {
+	return GetLoggerOrDefault(ctx)
+}
+
+// GetLoggerOrDefault returns the logger associated with the given context. If there is no logger, it will return Default.
+func GetLoggerOrDefault(ctx context.Context) *zap.Logger {
+	if l := logger(ctx); l != nil {
+		return l
+	}
+
 	return Default
+}
+
+// GetLogger returns the logger associated with the given context. If there is no logger, it will cause panic.
+func GetLogger(ctx context.Context) *zap.Logger {
+	if l := logger(ctx); l != nil {
+		println("--- 1 ---")
+		return l
+	}
+
+	println("--- 2 ---")
+	panic("logger not found in the context")
+}
+
+// GetLoggerOrError returns the logger associated with the given context. If there is no logger, it will return error.
+func GetLoggerOrError(ctx context.Context) (*zap.Logger, error) {
+	if l := logger(ctx); l != nil {
+		return l, nil
+	}
+
+	return nil, errors.New("logger not found in the context")
 }
 
 // Debug calls Logger(ctx).Debug(msg, fields...).
 func Debug(ctx context.Context, msg string, fields ...zapcore.Field) {
-	Logger(ctx).Debug(msg, fields...)
+	GetLoggerOrDefault(ctx).Debug(msg, fields...)
 }
 
 // Info calls Logger(ctx).Info(msg, fields...).
 func Info(ctx context.Context, msg string, fields ...zapcore.Field) {
-	Logger(ctx).Info(msg, fields...)
+	GetLoggerOrDefault(ctx).Info(msg, fields...)
 }
 
 // Warn calls Logger(ctx).Warn(msg, fields...).
 func Warn(ctx context.Context, msg string, fields ...zapcore.Field) {
-	Logger(ctx).Warn(msg, fields...)
+	GetLoggerOrDefault(ctx).Warn(msg, fields...)
 }
 
 // Error calls Logger(ctx).Error(msg, fields...).
 func Error(ctx context.Context, msg string, fields ...zapcore.Field) {
-	Logger(ctx).Error(msg, fields...)
+	GetLoggerOrDefault(ctx).Error(msg, fields...)
 }
